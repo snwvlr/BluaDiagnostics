@@ -1,0 +1,139 @@
+{
+  "version": "1.0",
+  "projeto": "BluaDiagnostics",
+  "descricao": "Contrato das tools que o agente BluaDiagnostics pode invocar via function calling. Na PoC todas têm comportamento simulado (mocked) no notebook. Em produção, cada uma vira uma chamada autenticada a um serviço da Care Plus.",
+  "tools": [
+    {
+      "name": "consultar_historico_paciente",
+      "obrigatoria": true,
+      "description": "Consulta o histórico clínico do beneficiário no sistema da Care Plus. Use SEMPRE que precisar de informação sobre idade, alergias, medicamentos em uso ou comorbidades pra personalizar a orientação. NUNCA invente esses dados, chame a tool. Em caso de paciente não encontrado, oriente o usuário a verificar o CPF cadastrado.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "cpf": {
+            "type": "string",
+            "description": "CPF do beneficiário, apenas dígitos, 11 caracteres. Exemplo: '12345678901'."
+          }
+        },
+        "required": ["cpf"]
+      },
+      "retorno_esperado": {
+        "type": "object",
+        "campos": {
+          "cpf": "string",
+          "nome": "string",
+          "idade": "integer",
+          "sexo": "string ('F' ou 'M')",
+          "alergias": "array de strings",
+          "medicamentos_em_uso": "array de objetos {nome, dose, frequencia}",
+          "comorbidades": "array de strings",
+          "ultima_consulta": "string (ISO 8601)"
+        }
+      },
+      "comportamento_simulado_poc": "Retorna sempre um paciente fixo (Maria Silva, 42 anos, hipertensa, em uso de losartana, alérgica a dipirona) pra fins de demonstração."
+    },
+    {
+      "name": "verificar_interacoes_medicamentosas",
+      "obrigatoria": true,
+      "description": "Verifica se há interação medicamentosa relevante entre uma lista de medicamentos. Use ANTES do médico confirmar uma prescrição, e quando o paciente relatar que vai tomar um medicamento novo junto com os que já usa. NÃO use pra sugerir medicamentos, a tool só verifica, não recomenda.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "medicamentos": {
+            "type": "array",
+            "description": "Lista com nomes dos medicamentos a verificar, em letra minúscula, sem dose. Exemplo: ['losartana', 'ibuprofeno'].",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 2
+          }
+        },
+        "required": ["medicamentos"]
+      },
+      "retorno_esperado": {
+        "type": "object",
+        "campos": {
+          "interacoes_encontradas": "array de objetos {medicamento_a, medicamento_b, severidade, descricao}",
+          "severidade_geral": "string ('nenhuma', 'leve', 'moderada', 'grave')",
+          "recomendacao": "string (orientação textual)"
+        }
+      },
+      "comportamento_simulado_poc": "Retorna interação moderada se a lista contiver simultaneamente 'losartana' e 'ibuprofeno' (caso real conhecido: AINEs reduzem efeito de anti-hipertensivos). Caso contrário retorna 'nenhuma'."
+    },
+    {
+      "name": "agendar_teleconsulta",
+      "obrigatoria": true,
+      "description": "Agenda uma teleconsulta com a especialidade adequada pro caso. Use quando a triagem indicar necessidade de avaliação profissional, quando o usuário pedir explicitamente, ou quando o caso fugir da capacidade do agente. NÃO use em casos de red flag clínica, nesses casos oriente SAMU 192 diretamente, sem agendar.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "cpf": {
+            "type": "string",
+            "description": "CPF do beneficiário."
+          },
+          "especialidade": {
+            "type": "string",
+            "description": "Especialidade desejada. Valores aceitos: 'clinico_geral', 'pediatria', 'ginecologia', 'cardiologia', 'dermatologia', 'psiquiatria', 'endocrinologia', 'ortopedia'."
+          },
+          "urgencia": {
+            "type": "string",
+            "description": "Nível de urgência da consulta. 'rotina' = próximos 7 dias; 'breve' = próximas 48h; 'mesmo_dia' = ainda hoje.",
+            "enum": ["rotina", "breve", "mesmo_dia"]
+          },
+          "motivo": {
+            "type": "string",
+            "description": "Breve resumo (1-2 frases) do motivo da consulta, pro médico se preparar."
+          }
+        },
+        "required": ["cpf", "especialidade", "urgencia", "motivo"]
+      },
+      "retorno_esperado": {
+        "type": "object",
+        "campos": {
+          "protocolo": "string (ID do agendamento)",
+          "data_horario": "string (ISO 8601)",
+          "profissional": "string (nome do médico alocado)",
+          "link_consulta": "string (URL da sala virtual)",
+          "status": "string ('confirmado', 'em_fila', 'recusado')"
+        }
+      },
+      "comportamento_simulado_poc": "Retorna sempre um agendamento confirmado com protocolo fictício, médico fictício e horário 1 hora à frente do momento atual."
+    },
+    {
+      "name": "obter_sinais_vitais_wearable",
+      "obrigatoria": false,
+      "bonus": "Integração simulada com wearables (Apple Health, Google Fit, Oura)",
+      "description": "Recupera os sinais vitais mais recentes coletados pelo wearable vinculado ao beneficiário. Use quando o caso clínico se beneficiar de dados objetivos de FC, SpO2, sono ou atividade, por exemplo, paciente reclamando de cansaço, palpitação, falta de ar leve. Os dados são complementares à triagem, NUNCA substituem avaliação médica.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "cpf": {
+            "type": "string",
+            "description": "CPF do beneficiário."
+          },
+          "fonte": {
+            "type": "string",
+            "description": "De qual wearable puxar os dados. Aceita 'apple_health', 'google_fit', 'oura'.",
+            "enum": ["apple_health", "google_fit", "oura"]
+          }
+        },
+        "required": ["cpf", "fonte"]
+      },
+      "retorno_esperado": {
+        "type": "object",
+        "campos": {
+          "fonte": "string",
+          "timestamp": "string (ISO 8601)",
+          "frequencia_cardiaca_media_bpm": "integer",
+          "frequencia_cardiaca_repouso_bpm": "integer",
+          "spo2_percent": "integer",
+          "passos_24h": "integer",
+          "sono_horas": "number",
+          "qualidade_sono": "string ('ruim', 'regular', 'boa')",
+          "hrv_ms": "integer"
+        }
+      },
+      "comportamento_simulado_poc": "Lê o arquivo `data/wearables_mock.json` e retorna o snapshot correspondente à fonte solicitada. Se fonte = 'apple_health', traz os dados com FC ligeiramente elevada (cenário interessante pra triagem). Outras fontes trazem valores normais."
+    }
+  ]
+}

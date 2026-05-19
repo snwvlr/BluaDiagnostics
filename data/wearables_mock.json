@@ -1,0 +1,45 @@
+{
+  "descricao": "Snapshots simulados de dados que viriam de wearables conectados ao app Blua. Em produção, esses dados seriam puxados via HealthKit (Apple), Health Connect (Google) ou API do Oura. Aqui estão hard-coded pra demonstrar a integração na PoC.",
+  "paciente_referencia": {
+    "cpf": "12345678901",
+    "nome": "Maria Silva"
+  },
+  "snapshots": {
+    "apple_health": {
+      "fonte": "apple_health",
+      "timestamp": "2026-05-18T08:42:00-03:00",
+      "frequencia_cardiaca_media_bpm": 88,
+      "frequencia_cardiaca_repouso_bpm": 78,
+      "spo2_percent": 97,
+      "passos_24h": 4210,
+      "sono_horas": 5.4,
+      "qualidade_sono": "ruim",
+      "hrv_ms": 28,
+      "observacao_interna": "FC de repouso ligeiramente elevada pra perfil da paciente (referência prévia: 65-70 bpm). HRV reduzida. Sono curto. Cenário interessante pra triagem: a IA pode correlacionar com a queixa de dor de cabeça e cansaço."
+    },
+    "google_fit": {
+      "fonte": "google_fit",
+      "timestamp": "2026-05-18T08:42:00-03:00",
+      "frequencia_cardiaca_media_bpm": 72,
+      "frequencia_cardiaca_repouso_bpm": 65,
+      "spo2_percent": 98,
+      "passos_24h": 8540,
+      "sono_horas": 7.8,
+      "qualidade_sono": "boa",
+      "hrv_ms": 42,
+      "observacao_interna": "Sinais dentro do esperado pra adulto saudável."
+    },
+    "oura": {
+      "fonte": "oura",
+      "timestamp": "2026-05-18T08:42:00-03:00",
+      "frequencia_cardiaca_media_bpm": 70,
+      "frequencia_cardiaca_repouso_bpm": 62,
+      "spo2_percent": 98,
+      "passos_24h": 9120,
+      "sono_horas": 8.1,
+      "qualidade_sono": "boa",
+      "hrv_ms": 48,
+      "observacao_interna": "Readiness score alto. Tudo dentro do padrão."
+    }
+  }
+}
